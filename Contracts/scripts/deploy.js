@@ -2,7 +2,7 @@ const hre = require("hardhat");
 
 async function main() {
 
-  const token = await hre.ethers.deployContract('PEPE20');
+  const token = await hre.ethers.deployContract('MemeToken');
   await token.waitForDeployment();
 
   console.log(
