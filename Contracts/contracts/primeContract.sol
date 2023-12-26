@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 abstract contract Context {
     function _msgSender() internal view virtual returns (address payable) {
@@ -357,14 +358,14 @@ interface IUniswapV2Router02 is IUniswapV2Router01 {
     ) external;
 }
 
-contract MemeToken is Context, IERC20, Ownable {
+contract MemeToken is Context, IERC20, Ownable, Initializable {
     
     using SafeMath for uint256;
     using Address for address;
     
-    string private _name = "Meme token";
-    string private _symbol = "MEME";
-    uint8 private _decimals = 9;
+    string private _name;
+    string private _symbol;
+    uint8 private _decimals;
 
     address payable public marketingWalletAddress = payable(0xeBb61C24FbeF54C8EC08bcE722Bce88cB5Efa89F); 
     address payable public teamWalletAddress = payable(0xeBb61C24FbeF54C8EC08bcE722Bce88cB5Efa89F);
@@ -430,7 +431,13 @@ contract MemeToken is Context, IERC20, Ownable {
         _;
         inSwapAndLiquify = false;
     }
-    
+     
+     function initionalize(string memory tokenName, string memory tokenSymbol, uint8 tokenDecimals) external initializer {
+        _name = tokenName;
+        _symbol = tokenSymbol;
+        _decimals = tokenDecimals;
+     }
+
     constructor () {
         
         IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0xD99D1c33F9fC3444f8101754aBC46c52416550D1); 
