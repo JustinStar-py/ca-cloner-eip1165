@@ -142,6 +142,11 @@ abstract contract Ownable is Context {
     address private _owner;
     event OwnershipTransferred(address indexed prevOwner, address indexed newOwner);
 
+    function initializeOwner(address initialOwner) internal {
+        require(_owner == address(0), "Ownable: owner has already been set");
+        _owner = initialOwner;
+        emit OwnershipTransferred(address(0), initialOwner);
+    }
     function owner() public view virtual returns (address) {
         return _owner;
     }
@@ -364,8 +369,8 @@ contract MemeToken is Context, IERC20, Ownable, Initializable {
     string private _symbol = "MEME";
     uint8 private _decimals = 9;
 
-    address payable public marketingWalletAddress = payable(0xeBb61C24FbeF54C8EC08bcE722Bce88cB5Efa89F); 
-    address payable public teamWalletAddress = payable(0xeBb61C24FbeF54C8EC08bcE722Bce88cB5Efa89F);
+    address payable public marketingWalletAddress; 
+    address payable public teamWalletAddress;
     address public immutable deadAddress = 0x000000000000000000000000000000000000dEaD;
     
     mapping (address => uint256) _balances;
@@ -437,14 +442,17 @@ contract MemeToken is Context, IERC20, Ownable, Initializable {
         require(_owner != address(0), "PrimeContract: zero address");
         require(marketingWallet != address(0), "PrimeContract: zero address");
         require(teamWallet != address(0), "PrimeContract: zero address");
+        
+        // transfer ownership
+        Ownable.initializeOwner(_owner);
 
-        _owner = _owner;   
+        // initialize token
         _name = tokenName;
         _symbol = tokenSymbol;
         _decimals = tokenDecimals;
-
-        marketingWallet = payable(marketingWallet);
-        teamWallet = payable(teamWallet);
+     
+        marketingWalletAddress = payable(marketingWallet);
+        teamWalletAddress = payable(teamWallet);
 
         _buyLiquidityFee = tokenTaxable[0];
         _buyMarketingFee = tokenTaxable[1];
@@ -736,5 +744,4 @@ contract MemeToken is Context, IERC20, Ownable, Initializable {
 
         return amount.sub(feeAmount);
     }
-    
 }
