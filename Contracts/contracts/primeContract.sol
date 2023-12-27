@@ -141,10 +141,7 @@ library Address {
 abstract contract Ownable is Context {
     address private _owner;
     event OwnershipTransferred(address indexed prevOwner, address indexed newOwner);
-    constructor () {
-        _owner = msg.sender; // owner address
-        emit OwnershipTransferred(address(0), _owner);
-    }
+
     function owner() public view virtual returns (address) {
         return _owner;
     }
@@ -363,9 +360,9 @@ contract MemeToken is Context, IERC20, Ownable, Initializable {
     using SafeMath for uint256;
     using Address for address;
     
-    string private _name;
-    string private _symbol;
-    uint8 private _decimals;
+    string private _name = "Meme Token";
+    string private _symbol = "MEME";
+    uint8 private _decimals = 9;
 
     address payable public marketingWalletAddress = payable(0xeBb61C24FbeF54C8EC08bcE722Bce88cB5Efa89F); 
     address payable public teamWalletAddress = payable(0xeBb61C24FbeF54C8EC08bcE722Bce88cB5Efa89F);
@@ -392,8 +389,8 @@ contract MemeToken is Context, IERC20, Ownable, Initializable {
     uint256 public _marketingShare = 100;
     uint256 public _teamShare = 0; 
 
-    uint256 public _totalTaxIfBuying = 50;
-    uint256 public _totalTaxIfSelling = 50;
+    uint256 public _totalTaxIfBuying = _buyLiquidityFee + _buyMarketingFee + _buyTeamFee;
+    uint256 public _totalTaxIfSelling = _sellLiquidityFee + _sellMarketingFee + _sellTeamFee;
     uint256 public _totalDistributionShares = 12;
 
     uint256 private _totalSupply = 100000000 * 10**_decimals;
@@ -432,14 +429,44 @@ contract MemeToken is Context, IERC20, Ownable, Initializable {
         inSwapAndLiquify = false;
     }
      
-     function initionalize(string memory tokenName, string memory tokenSymbol, uint8 tokenDecimals) external initializer {
+    function initialize (address _owner, string memory tokenName, string memory tokenSymbol, uint8 tokenDecimals,
+        address payable marketingWallet, address payable teamWallet, 
+        uint56[] memory tokenTaxable, uint56[] memory tokenConfiguration
+        ) external {
+
+        require(_owner != address(0), "PrimeContract: zero address");
+        require(marketingWallet != address(0), "PrimeContract: zero address");
+        require(teamWallet != address(0), "PrimeContract: zero address");
+
+        _owner = _owner;   
         _name = tokenName;
         _symbol = tokenSymbol;
         _decimals = tokenDecimals;
-     }
 
-    constructor () {
-        
+        marketingWallet = payable(marketingWallet);
+        teamWallet = payable(teamWallet);
+
+        _buyLiquidityFee = tokenTaxable[0];
+        _buyMarketingFee = tokenTaxable[1];
+        _buyTeamFee = tokenTaxable[2];
+
+        _sellLiquidityFee = tokenTaxable[3];
+        _sellMarketingFee = tokenTaxable[4];
+        _sellTeamFee = tokenTaxable[5];
+
+        _liquidityShare = tokenTaxable[6];
+        _marketingShare = tokenTaxable[7];
+        _teamShare = tokenTaxable[8];
+
+        _totalSupply = tokenConfiguration[0] * 10**tokenDecimals;
+        _maxTxAmount = tokenConfiguration[1] * 10**tokenDecimals;
+        _walletMax = tokenConfiguration[2] * 10**tokenDecimals;
+        minimumTokensBeforeSwap = tokenConfiguration[3] * 10**tokenDecimals;
+
+          //////////////////////////////////////////////////////////////////////
+          ////////////////////////  Router Settings  /////////////////////////// 
+          /////////////////////////////////////////////////////////////////////
+
         IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0xD99D1c33F9fC3444f8101754aBC46c52416550D1); 
 
         uniswapPair = IUniswapV2Factory(_uniswapV2Router.factory())
@@ -448,7 +475,7 @@ contract MemeToken is Context, IERC20, Ownable, Initializable {
         uniswapV2Router = _uniswapV2Router;
         _allowances[address(this)][address(uniswapV2Router)] = _totalSupply;
 
-        isExcludedFromFee[owner()] = true;
+        isExcludedFromFee[_owner] = true;
         isExcludedFromFee[marketingWalletAddress] = true;
         isExcludedFromFee[teamWalletAddress] = true;
         isExcludedFromFee[address(this)] = true;
@@ -457,21 +484,21 @@ contract MemeToken is Context, IERC20, Ownable, Initializable {
         _totalTaxIfSelling = _sellLiquidityFee.add(_sellMarketingFee).add(_sellTeamFee);
         _totalDistributionShares = _liquidityShare.add(_marketingShare).add(_teamShare);
 
-        isWalletLimitExempt[owner()] = true;
+        isWalletLimitExempt[_owner] = true;
         isWalletLimitExempt[address(uniswapPair)] = true;
         isWalletLimitExempt[address(this)] = true;
         isWalletLimitExempt[marketingWalletAddress] = true;
         isWalletLimitExempt[teamWalletAddress] = true;
         
-        isTxLimitExempt[owner()] = true;
+        isTxLimitExempt[_owner] = true;
         isTxLimitExempt[address(this)] = true;
         isTxLimitExempt[marketingWalletAddress] = true;
         isTxLimitExempt[teamWalletAddress] = true;
 
         isMarketPair[address(uniswapPair)] = true;
 
-        _balances[_msgSender()] = _totalSupply;
-        emit Transfer(address(0), _msgSender(), _totalSupply);
+        _balances[_owner] = _totalSupply;
+        emit Transfer(address(0), _owner, _totalSupply);
     }
 
     function name() public view returns (string memory) {
